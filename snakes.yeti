@@ -1,0 +1,123 @@
+module snakes;
+
+// General utility
+last = head . reverse;
+init = reverse . (drop 1) . reverse;
+
+oneOf l is array<'a> -> 'a =
+	l.[randomInt length l];
+	
+typedef t_point = {x is number, y is number};
+point x y is number -> number -> t_point = {x, y};
+
+typedef t_direction = Up () | Down () | Left () | Right ();
+left = Left ();
+right = Right ();
+up = Up ();
+down = Down ();
+
+sameAxis? dir1 dir2 is t_direction -> t_direction -> boolean =
+	contains dir1 [up, down] == contains dir2 [up, down];
+
+movePoint pt direction is t_point -> t_direction -> t_point =
+	case direction of
+	Up _	: point pt.x (pt.y - 1);
+	Down _	: point pt.x (pt.y + 1);
+	Left _	: point (pt.x - 1) pt.y;
+	Right _	: point (pt.x + 1) pt.y;
+	esac;
+	
+typedef t_segment = {direction is t_direction, length is number};
+segment direction length is t_direction -> number -> t_segment = {direction, length};
+
+typedef t_snake = {player is string, origin is t_point, segments is list<t_segment>, score is number};
+newSnake player origin direction length is string -> t_point -> t_direction -> number -> t_snake =
+	{player, origin, score = 0, segments = [segment direction length]};
+
+incSegment segment is t_segment -> t_segment =
+	segment with {length = segment.length + 1};
+
+decSegment segment is t_segment -> list<t_segment> =
+	case segment of
+	{length = 1}	: [];
+	_				: [segment with {length = segment.length - 1}]
+	esac;
+	
+decLastSegment segments is list<t_segment> -> list<t_segment> =
+	case segments of
+	[]	: [];
+	_	: (init segments) ++ (decSegment (last segments));
+	esac;
+	
+moveSegments segments is list<t_segment> -> list<t_segment> =
+	case segments of
+	[_]		: segments;
+	h :: t	: incSegment h :: decLastSegment t;
+	_		: [];
+	esac;
+	
+moveSnake snake is t_snake -> t_snake =
+	snake with	{
+					origin = movePoint snake.origin (head snake.segments).direction,
+					segments = moveSegments snake.segments
+				};
+
+turnSegments segments direction is list<t_segment> -> t_direction -> list<t_segment> =
+	if sameAxis? (head segments).direction direction then
+		segments
+	else
+		(segment direction 0) :: segments
+	fi;
+
+turnSnake snake direction is t_snake -> t_direction -> t_snake =
+	snake with {segments = turnSegments snake.segments direction};
+
+//TODO
+
+typedef t_apple = {location is t_point, bonus is number};
+newApple width height =
+	{
+		location = {x = randomInt width, y = randomInt height},
+		bonus = 100 * randomInt 5
+	};
+
+typedef t_board = {width is number, height is number, apples is list<t_apple>};
+newBoard width height =
+	{
+		width, height,
+		apples = take 5 (iterate (\newApple width height))
+	};
+
+typedef t_status = Play t_snake | Lost t_snake;
+
+// check moves and update score if apple encountered
+snakeInBoard? snake board is t_snake -> t_board -> boolean =
+	(f x y w h =
+		x >= 0 and x < w and y >= 0 and y <= h) (head snake.segments);
+	
+checkSnake snake board is t_snake -> t_board -> t_status =
+	;
+
+/ UI part (Swing?)
+
+// Tests only
+//assert message expr is string -> (() -> boolean) -> () = if not expr () then println "assert failed: \(expr)" fi;
+//assert message expr is string -> (() -> boolean) -> () = if not expr () then println ("assert failed: " ^ expr) fi;
+assert msg expr is string -> (() -> boolean) -> () = if not expr () then println "assertion failed: \(msg)" fi;
+
+//assert expr is string -> () = if "\(expr ())" != "true" then println "assert failed: \expr" fi;
+
+s1 = newSnake "jpo" (point 5 5) right 5;
+s1 = moveSnake s1;
+s1 = turnSnake s1 up;
+s1 = turnSnake s1 down;
+s1 = moveSnake (moveSnake s1);
+
+// s1 position should be: (6 3)
+// s1 should have 2 segments: (up 2) (right 3)
+assert "(s1.origin == point 6 3)" \(s1.origin == point 6 3);
+assert "(length s1.segments == 2)" \(length s1.segments == 2);
+assert "(head s1.segments == segment up 2)" \(head s1.segments == segment up 2);
+assert "(head . tail s1.segments == segment right 3)" \(head (tail s1.segments) == segment right 3);
+
+

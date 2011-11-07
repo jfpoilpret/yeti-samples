@@ -1,0 +1,9 @@
+This repository contains a few simple programs written with Yeti language, as a way for me to discover the language.
+
+These programs are normally autonomous, i.e. they don't depend on any module besides Yeti standard modules.
+
+Each file contains its own module and can be directly loaded in Yeti REPL, e.g.:
+
+	load life
+
+will start my implementation of famous Comway's game of life.

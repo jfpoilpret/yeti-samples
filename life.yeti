@@ -1,0 +1,79 @@
+module life;
+
+left c = {x = c.x - 1, y = c.y};
+right c = {x = c.x + 1, y = c.y};
+up c = {x = c.x, y = c.y - 1};
+down c = {x = c.x, y = c.y + 1};
+neighbors = 
+	[left . up,		up,		right . up, 
+	 left,					right,
+	 left . down,	down,	right . down];
+cellNeighbors cell = map (apply cell) neighbors;
+
+alive cells cell = contains? cell cells;
+countNeighbors cell cells = length (filter (alive cells) (cellNeighbors cell));
+
+mkCell x y = {x, y};
+allFieldCells size =
+	(f i = mkCell ((i % size) + 1) ((i div size) + 1);
+	 map f [0 .. size * size - 1]);
+
+// 1.Any live cell with fewer than two live neighbours dies, as if caused by under-population.
+// 2.Any live cell with two or three live neighbours lives on to the next generation.
+// 3.Any live cell with more than three live neighbours dies, as if by overcrowding.
+// 4.Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+mustLive cells cell =
+	(neighborhood = countNeighbors cell cells;
+	 if alive cells cell then contains? neighborhood [2, 3] else neighborhood == 3 fi);
+
+generation size cells = filter (mustLive cells) (allFieldCells size);
+
+// User output
+horizontalRule size = strPad "-" size "";
+horizontalBorder size = println ("+" ^ (horizontalRule size) ^ "+");
+printCell size cells cell = 
+	(if cell.x == 1 then print "|" fi;
+	 if alive cells cell then print "x" else print " " fi;
+	 if cell.x == size then println "|" fi);
+printField size cells =	
+	(horizontalBorder size;
+	 for (allFieldCells size) (printCell size cells);
+	 horizontalBorder size);
+
+//TODO add detection of end of game: either no life at all, or 2 consecutive boards are identical
+conway size cells =
+	(printField size cells;
+	 print "\nPress ENTER to get next generation > ";
+	 line = readln ();
+	 if line == "" then conway size (generation size cells) fi);
+
+//TODO improve input of rows by printing a ruler above input
+// (only once and align with "Line i" header)
+
+// User input
+cellsFromRow cells line x y =
+	case line of
+		"X" :: t :	{x = x, y = y} :: (cellsFromRow cells t (x+1) y);
+		_ :: t :		cellsFromRow cells t (x+1) y;
+		_ :				cells
+	esac;
+readOneRow size =
+	(line = strUpper (readln ());
+	 line = strPad " " size line;
+	 if strLength line > size then strLeft line size else line fi);
+readRow size y =
+	(println "Line \(y)";
+	 println (horizontalRule size);
+	 line = tail (strSplit "" (readOneRow size));
+	 cellsFromRow [] line 1 y);
+readCells () =
+	(print "\nWhat board size do you want (from 5 to 40) >> ";
+	 size = number (readln ());
+	 if not contains? size [5..40] then failWith "Size is out of range" fi;
+	 {size = size, cells = fold (do cells y: cells ++ (readRow size y) done) [] [1..size]});
+
+life () =
+	({size, cells} = readCells ();
+	 conway size cells);
+
+life ();
