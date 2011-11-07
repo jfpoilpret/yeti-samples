@@ -6,4 +6,4 @@ Each file contains its own module and can be directly loaded in Yeti REPL, e.g.:
 
 	load life
 
-will start my implementation of famous Comway's game of life.
+will start my implementation of famous Conway's game of life.
