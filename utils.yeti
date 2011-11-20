@@ -1,0 +1,122 @@
+module utils;
+
+last xs = case xs of
+	[x]  : x;
+	h::t : last t;
+	_    : failWith "Cannot ask for last []";
+esac;
+
+init xs = case xs of
+	[_]  : [];
+	h::t : h :: (init t);
+	_    : [];
+esac;
+
+maximum xs = case xs of
+	h::t : fold max h t;
+	_    : failWith "Cannot ask for maximum []";
+esac;
+
+minimum xs = case xs of
+	h::t : fold min h t;
+	_    : failWith "Cannot ask for minimum []";
+esac;
+
+product = fold (*) 1;
+
+cycle xs = 
+	{
+		lazy init rest is 'b -> (() -> list<'b>) -> list<'b> = 
+			new yeti.lang.LazyList(init, rest) unsafely_as list<'b>,
+		rest1 xs ys = lazy (head ys) (do: rest2 xs (tail ys) done),
+		rest2 xs t = rest1 xs (if t == [] then xs else t fi)
+	}.rest2 xs (tail xs);
+
+repeat x = iterate (\x) x;
+
+replicate n x = take n (repeat x);
+
+//FIXME this implementation only works with arrays, improve it to directly work with lists!
+zip xs ys =
+	(len = min (length xs) (length ys);
+	 map (_ i = pair xs.[i] ys.[i]) [0..len-1]);
+
+zipWith f xs ys = map (_ {fst,snd} = f fst snd) (zip xs ys);
+
+unzip xs = pair (map (_ {fst} = fst) xs) (map (_ {snd} = snd) xs);
+
+transpose xs is list<list<'a>> -> list<list<'a>> = 
+	if head xs == [] then [] else (map head xs) :: (transpose (map tail xs)) fi;
+
+even n = (n % 2) == 0;
+odd n = (n % 2) == 1;
+
+partition p xs = 
+	(_part {fst, snd} p xs = case xs of
+		 h::t :	if p h then _part {fst = fst ++ [h], snd} p t else _part {fst, snd = snd ++ [h]} p t fi;
+		 _ :	{fst, snd}
+	 esac) (pair [] []) p xs;
+
+span = splitBy;
+/*
+// Example implementation of span
+span p xs = case xs of
+	h::t :	{fst, snd} = span p t; if p h then pair (h :: fst) snd else pair [] xs fi;
+	_ :		pair [] []
+esac;
+*/
+
+/*
+// Example implementation of groupBy
+groupBy' eq xs = case xs of
+	h::t :	{fst, snd} = span (eq h) t; (h::fst) :: (groupBy' eq snd);
+	_ :		[]
+esac;
+*/
+
+group = groupBy (==);
+
+/*
+// Example implementation of fold
+fold' f x xs = case xs of
+	h::t:	fold' f (f x h) t;
+	_:		x;
+esac;
+*/
+
+scan f y xs is ('a -> 'b -> 'a) -> 'a -> list?<'b> -> list<'a> =
+	fold (_ ys x = ys ++ [f (last ys) x]) [y] xs;
+
+/*
+stopgen () = throw new java.util.NoSuchElementException();
+lazy init rest is 'b -> (() -> list<'b>) -> list<'b> = 
+	new yeti.lang.LazyList(init, rest) unsafely_as list<'b>;
+rest extract context yield is ('a -> 'b) -> 'a -> ('a -> 'a) -> list<'b> = 
+	try
+		newContext = yield context;
+		lazy (extract newContext) (do: rest extract newContext yield done)
+	catch java.util.NoSuchElementException:
+		[]
+	yrt;
+generator extract context yield is ('a -> 'b) -> 'a -> ('a -> 'a) -> list<'b> =
+	rest extract context yield;
+*/
+
+/*
+foldr
+scanr
+unionBy
+*/
+
+// What's exported from the module
+{
+	last, init,
+	maximum, minimum,
+	product,
+	cycle, repeat, replicate,
+	zip, zipWith, unzip,
+	transpose,
+	even, odd,
+	scan, span, partition, 
+	group
+}

@@ -1,0 +1,135 @@
+module bankocr;
+
+// KATA Bank OCR: http://codingdojo.org/cgi-bin/wiki.pl?KataBankOCR
+// User story 1
+
+// list of patterns for all scanned digits
+_d1 =  ["   ", 
+		"  |", 
+		"  |"];
+_d2 =  [" _ ", 
+		" _|", 
+		"|_ "];
+_d3 =  [" _ ", 
+		" _|", 
+		" _|"];
+_d4 =  ["   ", 
+		"|_|", 
+		"  |"];
+_d5 =  [" _ ", 
+		"|_ ", 
+		" _|"];
+_d6 =  [" _ ", 
+		"|_ ", 
+		"|_|"];
+_d7 =  [" _ ", 
+		"  |", 
+		"  |"];
+_d8 =  [" _ ", 
+		"|_|", 
+		"|_|"];
+_d9 =  [" _ ", 
+		"|_|", 
+		" _|"];
+_d0 =  [" _ ", 
+		"| |", 
+		"|_|"];
+
+digits = [:];
+digits.[_d1] := 1;
+digits.[_d2] := 2;
+digits.[_d3] := 3;
+digits.[_d4] := 4;
+digits.[_d5] := 5;
+digits.[_d6] := 6;
+digits.[_d7] := 7;
+digits.[_d8] := 8;
+digits.[_d9] := 9;
+digits.[_d0] := 0;
+
+// splits a string in chunks of a given size (NB: string length must be a multiple of n)
+// NB no TCO needed here
+split n l = if strLength l == 0 then [] else (strLeft l n) :: (split n (strRight l n)) fi;
+split3 = split 3;
+
+// breaks down a set of lines into a set of patterns chunks for each line
+// NB no TCO needed here
+break ls is list?<string> -> list<list<string>> = 
+	if empty? ls then [] else (split3 (head ls)) :: (break (tail ls)) fi;
+
+// transposes a matrix, used to gather pattern chunks obtained from break ls (this one was borrowed and adapted from haskell)
+// NB no TCO needed here
+transpose xs is list<list<'a>> -> list<list<'a>> = 
+	if head xs == [] then [] else (map head xs) :: (transpose (map tail xs)) fi;
+
+// extracts all patterns out of one set of 3 lines
+extract = transpose . break;
+
+// parses all patterns from a list of lines into a string of digits
+parse ls = strJoin "" (map (at digits) (extract ls));
+
+parseAll ls is list<string> -> list<string> =
+	if empty? ls then [] else parse (take 3 ls) :: parseAll (drop 4 ls) fi;
+	
+// main entry point to read set of 3 lines from a file (and skip empty 4th line)
+main file = withHandle (openInFile file "ASCII") (_ h = parseAll (h.lines ()));
+
+tcAll0 = [
+" _  _  _  _  _  _  _  _  _ ",
+"| || || || || || || || || |",
+"|_||_||_||_||_||_||_||_||_|"];
+tcAll1 = [
+"                           ",
+"  |  |  |  |  |  |  |  |  |",
+"  |  |  |  |  |  |  |  |  |"];
+tcAll2 = [
+" _  _  _  _  _  _  _  _  _ ",
+" _| _| _| _| _| _| _| _| _|",
+"|_ |_ |_ |_ |_ |_ |_ |_ |_ "];
+tcAll3 = [
+" _  _  _  _  _  _  _  _  _ ",
+" _| _| _| _| _| _| _| _| _|",
+" _| _| _| _| _| _| _| _| _|"];
+tcAll4 = [
+"                           ",
+"|_||_||_||_||_||_||_||_||_|",
+"  |  |  |  |  |  |  |  |  |"];
+tcAll5 = [
+" _  _  _  _  _  _  _  _  _ ",
+"|_ |_ |_ |_ |_ |_ |_ |_ |_ ",
+" _| _| _| _| _| _| _| _| _|"];
+tcAll6 = [
+" _  _  _  _  _  _  _  _  _ ",
+"|_ |_ |_ |_ |_ |_ |_ |_ |_ ",
+"|_||_||_||_||_||_||_||_||_|"];
+tcAll7 = [
+" _  _  _  _  _  _  _  _  _ ",
+"  |  |  |  |  |  |  |  |  |",
+"  |  |  |  |  |  |  |  |  |"];
+tcAll8 = [
+" _  _  _  _  _  _  _  _  _ ",
+"|_||_||_||_||_||_||_||_||_|",
+"|_||_||_||_||_||_||_||_||_|"];
+tcAll9 = [
+" _  _  _  _  _  _  _  _  _ ",
+"|_||_||_||_||_||_||_||_||_|",
+" _| _| _| _| _| _| _| _| _|"];
+
+// FIXME careful with that TC: lines are NOT the exact size!!!
+tc123456789 = [
+"    _  _     _  _  _  _  _",
+"  | _| _||_||_ |_   ||_||_|",
+"  ||_  _|  | _||_|  ||_| _| "];
+
+check patterns expected = 
+	(actual = parseAll patterns;
+	 if actual != expected then failWith "\(expected) = \(values)" fi);
+
+empty = [""];
+allTests = tcAll1 ++ empty ++ tcAll2 ++ tcAll3 ++ empty ++ tcAll4 ++ empty ++ tcAll5 ++ empty 
+	++ tcAll6 ++ empty ++ tcAll7 ++ empty ++ tcAll8 ++ empty ++ tcAll9 ++ empty 
+	++ tcAll0 ++ empty ++ tc123456789 ++ empty;
+allExpected = ["111111111","222222222","333333333","444444444","555555555","666666666",
+	"777777777","888888888","999999999","000000000","123456789"];
+
+check allTests allExpected;
